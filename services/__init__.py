@@ -1,0 +1,1 @@
+from .telegram_service import telegram_service

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}添加账户 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('accounts') }}">账户管理</a></li>
+                <li class="breadcrumb-item active">添加账户</li>
+            </ol>
+        </nav>
+        
+        <h1 class="h2 mb-4">
+            <i class="fas fa-user-plus me-2"></i>添加 Telegram 账户
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">账户信息</h5>
+            </div>
+            <div class="card-body">
+                <form id="addAccountForm" method="POST">
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label">
+                            手机号码 <span class="text-danger">*</span>
+                        </label>
+                        <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                               placeholder="+8613800138000" required>
+                        <div class="form-text">请输入完整的国际格式手机号码</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_id" class="form-label">
+                            API ID <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="api_id" name="api_id" 
+                               placeholder="123456" required>
+                        <div class="form-text">
+                            从 <a href="https://my.telegram.org/apps" target="_blank">my.telegram.org/apps</a> 获取
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_hash" class="form-label">
+                            API Hash <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="api_hash" name="api_hash" 
+                               placeholder="abcdef1234567890abcdef1234567890" required>
+                        <div class="form-text">从 Telegram 开发者平台获取的 API Hash</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="nickname" class="form-label">昵称（可选）</label>
+                        <input type="text" class="form-control" id="nickname" name="nickname" 
+                               placeholder="给这个账户起个昵称">
+                        <div class="form-text">便于识别和管理多个账户</div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>添加账户
+                        </button>
+                        <a href="{{ url_for('accounts') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>返回
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>获取 API 凭据
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>步骤：</h6>
+                <ol class="list-styled">
+                    <li>访问 <a href="https://my.telegram.org/apps" target="_blank">my.telegram.org/apps</a></li>
+                    <li>使用您的手机号码登录</li>
+                    <li>创建新的应用程序</li>
+                    <li>复制 API ID 和 API Hash</li>
+                    <li>在此处填入获取到的凭据</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>注意事项
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="fas fa-shield-alt text-success me-2"></i>
+                        API 凭据仅存储在本地，确保安全
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-key text-warning me-2"></i>
+                        请勿分享您的 API 凭据给他人
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-mobile-alt text-info me-2"></i>
+                        首次连接可能需要短信验证码
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-book text-primary me-2"></i>
+                        遵守 Telegram 使用条款和政策
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>常见问题
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="accordion accordion-flush" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq1">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                什么是 API ID 和 API Hash？
+                            </button>
+                        </h2>
+                        <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small">
+                                这是 Telegram 提供的开发者凭据，用于访问 Telegram API。每个应用程序都需要唯一的凭据。
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                为什么需要手机号码？
+                            </button>
+                        </h2>
+                        <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small">
+                                手机号码是 Telegram 账户的唯一标识符，用于建立连接和验证身份。
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq3">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                数据安全吗？
+                            </button>
+                        </h2>
+                        <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small">
+                                所有数据都存储在您的本地设备上，我们不会上传或分享您的任何敏感信息。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('addAccountForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    // Basic validation
+    if (!data.phone_number || !data.api_id || !data.api_hash) {
+        alert('请填写所有必填字段');
+        return;
+    }
+    
+    // Phone number format validation
+    const phonePattern = /^\+\d{10,15}$/;
+    if (!phonePattern.test(data.phone_number)) {
+        alert('请输入正确的国际格式手机号码（如：+8613800138000）');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>添加中...';
+    submitBtn.disabled = true;
+    
+    // Submit form
+    fetch('/accounts/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('账户添加成功！');
+            window.location.href = '/accounts';
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请重试。');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Restore button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Phone number formatting
+document.getElementById('phone_number').addEventListener('input', function(e) {
+    let value = e.target.value;
+    
+    // Remove non-digit characters except +
+    value = value.replace(/[^\d+]/g, '');
+    
+    // Ensure it starts with +
+    if (!value.startsWith('+')) {
+        value = '+' + value.replace(/^\+*/, '');
+    }
+    
+    e.target.value = value;
+});
+</script>
+{% endblock %}

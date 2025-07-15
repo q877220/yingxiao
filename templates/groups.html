@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}群组管理 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-comments me-2"></i>群组管理
+            </h1>
+            <div class="btn-group">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#joinGroupModal">
+                    <i class="fas fa-plus me-1"></i>加入群组
+                </button>
+                <button class="btn btn-outline-primary" onclick="refreshAllGroups()">
+                    <i class="fas fa-sync me-1"></i>刷新列表
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">已加入的群组和频道</h5>
+                    <span class="badge bg-primary">{{ groups|length }} 个群组</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if groups %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名称</th>
+                                    <th>用户名</th>
+                                    <th>类型</th>
+                                    <th>成员数</th>
+                                    <th>加入时间</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in groups %}
+                                <tr>
+                                    <td>
+                                        <span class="font-monospace text-muted">{{ group.group_id }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-{{ 'broadcast-tower' if group.type == 'channel' else 'users' }} me-2 text-muted"></i>
+                                            <div>
+                                                <div class="fw-semibold">{{ group.title }}</div>
+                                                {% if group.description %}
+                                                    <small class="text-muted">{{ group.description[:50] }}...</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if group.username %}
+                                            <a href="https://t.me/{{ group.username }}" target="_blank" class="text-decoration-none">
+                                                @{{ group.username }}
+                                                <i class="fas fa-external-link-alt fa-xs ms-1"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if group.type == 'channel' %}
+                                            <span class="badge bg-info">频道</span>
+                                        {% elif group.type == 'supergroup' %}
+                                            <span class="badge bg-primary">超级群组</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">群组</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if group.member_count %}
+                                            {{ "{:,}".format(group.member_count) }}
+                                        {% else %}
+                                            <span class="text-muted">未知</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ group.join_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if group.is_active %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>活跃
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-pause-circle me-1"></i>暂停
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" onclick="viewGroupDetails({{ group.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" onclick="scrapeUsers({{ group.id }})">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="updateGroupInfo({{ group.id }})">
+                                                        <i class="fas fa-sync me-1"></i>更新信息
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="exportMembers({{ group.id }})">
+                                                        <i class="fas fa-file-export me-1"></i>导出成员
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="toggleGroupStatus({{ group.id }}, {{ 'false' if group.is_active else 'true' }})">
+                                                        <i class="fas fa-{{ 'pause' if group.is_active else 'play' }} me-1"></i>
+                                                        {{ '暂停' if group.is_active else '启用' }}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#" onclick="leaveGroup({{ group.id }})">
+                                                        <i class="fas fa-sign-out-alt me-1"></i>退出群组
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无群组</h5>
+                        <p class="text-muted">添加 Telegram 账户后同步群组信息，或手动加入新群组</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#joinGroupModal">
+                            <i class="fas fa-plus me-1"></i>加入群组
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 加入群组模态框 -->
+<div class="modal fade" id="joinGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>加入群组
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="joinGroupForm">
+                    <div class="mb-3">
+                        <label for="groupLink" class="form-label">群组链接</label>
+                        <input type="url" class="form-control" id="groupLink" 
+                               placeholder="https://t.me/groupname 或 @groupname" required>
+                        <div class="form-text">输入群组的邀请链接或用户名</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="accountSelect" class="form-label">使用账户</label>
+                        <select class="form-select" id="accountSelect" required>
+                            <option value="">选择账户...</option>
+                            <!-- 这里应该填入活跃账户选项 -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="joinGroup()">
+                    <i class="fas fa-plus me-1"></i>加入群组
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshAllGroups() {
+    alert('群组信息刷新功能开发中...');
+}
+
+function viewGroupDetails(groupId) {
+    alert(`查看群组 ${groupId} 详情功能开发中...`);
+}
+
+function scrapeUsers(groupId) {
+    if (confirm('确定要采集此群组的用户信息吗？')) {
+        alert(`采集群组 ${groupId} 用户功能开发中...`);
+    }
+}
+
+function updateGroupInfo(groupId) {
+    alert(`更新群组 ${groupId} 信息功能开发中...`);
+}
+
+function exportMembers(groupId) {
+    alert(`导出群组 ${groupId} 成员功能开发中...`);
+}
+
+function toggleGroupStatus(groupId, newStatus) {
+    const action = newStatus === 'true' ? '启用' : '暂停';
+    if (confirm(`确定要${action}此群组吗？`)) {
+        alert(`${action}群组功能开发中...`);
+    }
+}
+
+function leaveGroup(groupId) {
+    if (confirm('确定要退出此群组吗？退出后将无法再向该群组发送消息。')) {
+        alert(`退出群组功能开发中...`);
+    }
+}
+
+function joinGroup() {
+    const form = document.getElementById('joinGroupForm');
+    const groupLink = document.getElementById('groupLink').value;
+    const accountId = document.getElementById('accountSelect').value;
+    
+    if (!groupLink || !accountId) {
+        alert('请填写所有必填字段');
+        return;
+    }
+    
+    alert('加入群组功能开发中...');
+}
+
+// 页面加载时获取活跃账户列表
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/accounts')
+        .then(response => response.json())
+        .then(accounts => {
+            const select = document.getElementById('accountSelect');
+            const activeAccounts = accounts.filter(acc => acc.status === 'active');
+            
+            activeAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = `${account.nickname || account.phone_number} (${account.phone_number})`;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Failed to load accounts:', error);
+        });
+});
+</script>
+{% endblock %}

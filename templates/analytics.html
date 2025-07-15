@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}数据分析 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-chart-line me-2"></i>数据分析
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">发送成功</h5>
+                        <h3 class="mb-0">{{ total_sent }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">发送失败</h5>
+                        <h3 class="mb-0">{{ total_failed }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">成功率</h5>
+                        <h3 class="mb-0">
+                            {% if total_sent + total_failed > 0 %}
+                                {{ "%.1f"|format((total_sent / (total_sent + total_failed)) * 100) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-percentage fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">总活动数</h5>
+                        <h3 class="mb-0">{{ recent_messages|length }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-broadcast-tower fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>发送统计图表
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="messageChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-history me-2"></i>最近活动记录
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if recent_messages %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>账户</th>
+                                    <th>群组</th>
+                                    <th>状态</th>
+                                    <th>活动</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for message in recent_messages %}
+                                <tr>
+                                    <td>
+                                        {% if message.sent_at %}
+                                            {{ message.sent_at.strftime('%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ message.account.nickname or message.account.phone_number if message.account else '未知' }}</small>
+                                    </td>
+                                    <td>
+                                        <small>{{ message.group.title if message.group else '未知' }}</small>
+                                    </td>
+                                    <td>
+                                        {% if message.status == 'sent' %}
+                                            <span class="badge bg-success">已发送</span>
+                                        {% elif message.status == 'failed' %}
+                                            <span class="badge bg-danger">失败</span>
+                                        {% elif message.status == 'delivered' %}
+                                            <span class="badge bg-info">已送达</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ message.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ message.campaign.name if message.campaign else '手动发送' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">暂无活动记录</h6>
+                        <p class="text-muted">开始发送消息后这里将显示统计数据</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-pie-chart me-2"></i>发送状态分布
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="statusPieChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>今日概览
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <div class="h4 mb-0 text-primary">0</div>
+                            <small class="text-muted">今日发送</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 mb-0 text-success">0</div>
+                        <small class="text-muted">成功数</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <div class="h4 mb-0 text-warning">0</div>
+                            <small class="text-muted">活跃账户</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 mb-0 text-info">0</div>
+                        <small class="text-muted">目标群组</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-download me-2"></i>导出数据
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportMessages()">
+                        <i class="fas fa-file-csv me-1"></i>导出消息记录
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportUsers()">
+                        <i class="fas fa-users me-1"></i>导出用户数据
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="exportCampaigns()">
+                        <i class="fas fa-broadcast-tower me-1"></i>导出活动报告
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 消息发送趋势图
+const ctx1 = document.getElementById('messageChart').getContext('2d');
+new Chart(ctx1, {
+    type: 'line',
+    data: {
+        labels: ['今天', '昨天', '前天', '3天前', '4天前', '5天前', '6天前'],
+        datasets: [{
+            label: '发送成功',
+            data: [0, 0, 0, 0, 0, 0, 0], // 这里应该用真实数据
+            borderColor: '#198754',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.4
+        }, {
+            label: '发送失败',
+            data: [0, 0, 0, 0, 0, 0, 0], // 这里应该用真实数据
+            borderColor: '#dc3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// 状态分布饼图
+const ctx2 = document.getElementById('statusPieChart').getContext('2d');
+new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+        labels: ['发送成功', '发送失败'],
+        datasets: [{
+            data: [{{ total_sent }}, {{ total_failed }}],
+            backgroundColor: ['#198754', '#dc3545'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function exportMessages() {
+    alert('导出消息记录功能开发中...');
+}
+
+function exportUsers() {
+    alert('导出用户数据功能开发中...');
+}
+
+function exportCampaigns() {
+    alert('导出活动报告功能开发中...');
+}
+</script>
+{% endblock %}

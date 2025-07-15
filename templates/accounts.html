@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}账户管理 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-users me-2"></i>账户管理
+            </h1>
+            <a href="{{ url_for('add_account') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>添加账户
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Telegram 账户列表</h5>
+            </div>
+            <div class="card-body">
+                {% if accounts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>手机号码</th>
+                                    <th>昵称</th>
+                                    <th>状态</th>
+                                    <th>最后活跃</th>
+                                    <th>验证状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account in accounts %}
+                                <tr>
+                                    <td>{{ account.id }}</td>
+                                    <td>
+                                        <span class="font-monospace">{{ account.phone_number }}</span>
+                                    </td>
+                                    <td>{{ account.nickname or '-' }}</td>
+                                    <td>
+                                        {% if account.status == 'active' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>活跃
+                                            </span>
+                                        {% elif account.status == 'inactive' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-pause-circle me-1"></i>未激活
+                                            </span>
+                                        {% elif account.status == 'banned' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-ban me-1"></i>已封禁
+                                            </span>
+                                        {% elif account.status == 'limited' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>受限
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if account.last_active %}
+                                            {{ account.last_active.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">从未</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if account.is_verified %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-shield-alt me-1"></i>已验证
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>未验证
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" onclick="syncGroups({{ account.id }})">
+                                                <i class="fas fa-sync me-1"></i>同步群组
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="testConnection({{ account.id }})">
+                                                <i class="fas fa-plug me-1"></i>测试连接
+                                            </button>
+                                            <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="editAccount({{ account.id }})">
+                                                        <i class="fas fa-edit me-1"></i>编辑
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="viewSessions({{ account.id }})">
+                                                        <i class="fas fa-history me-1"></i>查看会话
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#" onclick="deleteAccount({{ account.id }})">
+                                                        <i class="fas fa-trash me-1"></i>删除
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-plus fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无 Telegram 账户</h5>
+                        <p class="text-muted">添加您的第一个 Telegram 账户开始使用云控助手</p>
+                        <a href="{{ url_for('add_account') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>添加账户
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Statistics -->
+{% if accounts %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>账户状态分布
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="accountStatusChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>使用提示
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        确保您的 Telegram API 凭据正确无误
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-shield-alt text-success me-2"></i>
+                        建议启用两步验证增强账户安全
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-clock text-info me-2"></i>
+                        定期同步群组信息保持数据最新
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                        遵守 Telegram 使用条款避免账户被限制
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function syncGroups(accountId) {
+    if (confirm('确定要同步此账户的群组信息吗？')) {
+        fetch(`/groups/sync/${accountId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                } else {
+                    alert('同步失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('网络错误，请重试。');
+            });
+    }
+}
+
+function testConnection(accountId) {
+    alert('连接测试功能开发中...');
+}
+
+function editAccount(accountId) {
+    alert('编辑功能开发中...');
+}
+
+function viewSessions(accountId) {
+    alert('会话查看功能开发中...');
+}
+
+function deleteAccount(accountId) {
+    if (confirm('确定要删除此账户吗？此操作不可撤销！')) {
+        alert('删除功能开发中...');
+    }
+}
+
+// Account Status Chart
+{% if accounts %}
+const ctx = document.getElementById('accountStatusChart').getContext('2d');
+const statusData = {
+    active: {{ accounts | selectattr('status', 'equalto', 'active') | list | length }},
+    inactive: {{ accounts | selectattr('status', 'equalto', 'inactive') | list | length }},
+    banned: {{ accounts | selectattr('status', 'equalto', 'banned') | list | length }},
+    limited: {{ accounts | selectattr('status', 'equalto', 'limited') | list | length }}
+};
+
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['活跃', '未激活', '已封禁', '受限'],
+        datasets: [{
+            data: [statusData.active, statusData.inactive, statusData.banned, statusData.limited],
+            backgroundColor: ['#198754', '#6c757d', '#dc3545', '#ffc107'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
