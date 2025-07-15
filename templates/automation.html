@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}自动化 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-robot me-2"></i>自动化功能
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-reply me-2"></i>自动回复规则
+                </h6>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                    <i class="fas fa-plus me-1"></i>添加规则
+                </button>
+            </div>
+            <div class="card-body">
+                {% if auto_reply_rules %}
+                    {% for rule in auto_reply_rules %}
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ rule.name }}</h6>
+                                    <p class="mb-2 text-muted small">{{ rule.reply_message[:50] }}...</p>
+                                    <small class="text-muted">
+                                        关键词: {{ rule.get_trigger_keywords()[:3]|join(', ') }}
+                                        {% if rule.get_trigger_keywords()|length > 3 %}...{% endif %}
+                                    </small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-success" onclick="toggleRule({{ rule.id }}, {{ rule.is_active|lower }})">
+                                        <i class="fas fa-{{ 'pause' if rule.is_active else 'play' }}"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="editRule({{ rule.id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteRule({{ rule.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-robot fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">暂无自动回复规则</h6>
+                        <p class="text-muted">创建规则让系统自动回复消息</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>其他自动化功能
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">关键词入群</h6>
+                            <small class="text-muted">自动根据关键词搜索并加入群组</small>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="configKeywordJoin()">
+                            <i class="fas fa-cog"></i> 配置
+                        </button>
+                    </div>
+                    
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">自动转发</h6>
+                            <small class="text-muted">自动转发特定群组的消息</small>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="configAutoForward()">
+                            <i class="fas fa-cog"></i> 配置
+                        </button>
+                    </div>
+                    
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">自动点赞</h6>
+                            <small class="text-muted">自动对消息进行点赞</small>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="configAutoLike()">
+                            <i class="fas fa-cog"></i> 配置
+                        </button>
+                    </div>
+                    
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">账户保活</h6>
+                            <small class="text-muted">保持账户在线和活跃状态</small>
+                        </div>
+                        <button class="btn btn-outline-success btn-sm" onclick="toggleAccountKeepAlive()">
+                            <i class="fas fa-play"></i> 启动
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>使用说明
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        自动回复支持多个触发关键词
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-clock text-info me-2"></i>
+                        建议设置适当的延迟避免被检测
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-shield-alt text-success me-2"></i>
+                        所有自动化功能都遵循安全限制
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                        请确保内容符合 Telegram 政策
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加规则模态框 -->
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>添加自动回复规则
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addRuleForm">
+                    <div class="mb-3">
+                        <label for="ruleName" class="form-label">规则名称</label>
+                        <input type="text" class="form-control" id="ruleName" 
+                               placeholder="给规则起个名字" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="triggerKeywords" class="form-label">触发关键词</label>
+                        <input type="text" class="form-control" id="triggerKeywords" 
+                               placeholder="关键词1,关键词2,关键词3" required>
+                        <div class="form-text">多个关键词用逗号分隔</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="replyMessage" class="form-label">回复内容</label>
+                        <textarea class="form-control" id="replyMessage" rows="4" 
+                                  placeholder="输入自动回复的内容..." required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="targetGroups" class="form-label">目标群组（可选）</label>
+                        <select class="form-select" id="targetGroups" multiple>
+                            {% for group in groups %}
+                            <option value="{{ group.group_id }}">{{ group.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">留空表示应用于所有群组</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveRule()">
+                    <i class="fas fa-save me-1"></i>保存规则
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleRule(ruleId, currentStatus) {
+    const action = currentStatus ? '暂停' : '启用';
+    if (confirm(`确定要${action}此规则吗？`)) {
+        alert(`${action}规则功能开发中...`);
+    }
+}
+
+function editRule(ruleId) {
+    alert(`编辑规则 ${ruleId} 功能开发中...`);
+}
+
+function deleteRule(ruleId) {
+    if (confirm('确定要删除此规则吗？此操作不可撤销！')) {
+        alert(`删除规则 ${ruleId} 功能开发中...`);
+    }
+}
+
+function saveRule() {
+    const form = document.getElementById('addRuleForm');
+    
+    const data = {
+        name: document.getElementById('ruleName').value,
+        trigger_keywords: document.getElementById('triggerKeywords').value.split(',').map(k => k.trim()),
+        reply_message: document.getElementById('replyMessage').value,
+        target_groups: Array.from(document.getElementById('targetGroups').selectedOptions).map(o => parseInt(o.value))
+    };
+    
+    if (!data.name || !data.reply_message || data.trigger_keywords.length === 0) {
+        alert('请填写所有必填字段');
+        return;
+    }
+    
+    fetch('/automation/add_rule', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('规则添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请重试。');
+        console.error('Error:', error);
+    });
+}
+
+function configKeywordJoin() {
+    alert('关键词入群配置功能开发中...');
+}
+
+function configAutoForward() {
+    alert('自动转发配置功能开发中...');
+}
+
+function configAutoLike() {
+    alert('自动点赞配置功能开发中...');
+}
+
+function toggleAccountKeepAlive() {
+    alert('账户保活功能开发中...');
+}
+</script>
+{% endblock %}

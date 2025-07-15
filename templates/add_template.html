@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}创建消息模板 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('templates') }}">消息模板</a></li>
+                <li class="breadcrumb-item active">创建模板</li>
+            </ol>
+        </nav>
+        
+        <h1 class="h2 mb-4">
+            <i class="fas fa-envelope-open me-2"></i>创建消息模板
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">模板信息</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            模板名称 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="给模板起个名字" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">
+                            消息内容 <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="content" name="content" rows="6" 
+                                  placeholder="输入您的消息内容..." required></textarea>
+                        <div class="form-text">
+                            支持 Telegram 格式，如 <code>**粗体**</code>, <code>__斜体__</code>, <code>`代码`</code>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="media_file" class="form-label">媒体文件（可选）</label>
+                        <input type="file" class="form-control" id="media_file" name="media_file" 
+                               accept="image/*,video/*,.pdf,.doc,.docx">
+                        <div class="form-text">
+                            支持图片、视频和文档。最大 16MB。
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>保存模板
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="previewMessage()">
+                            <i class="fas fa-eye me-1"></i>预览
+                        </button>
+                        <a href="{{ url_for('templates') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>返回
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>模板技巧
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        使用个性化称呼增加亲近感
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        保持消息简洁明了
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        添加明确的行动号召
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        使用 Emoji 增加趣味性
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-code me-2"></i>格式化语法
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    <div class="mb-2">
+                        <code>**文本**</code> - <strong>粗体</strong>
+                    </div>
+                    <div class="mb-2">
+                        <code>__文本__</code> - <em>斜体</em>
+                    </div>
+                    <div class="mb-2">
+                        <code>`代码`</code> - <code>等宽字体</code>
+                    </div>
+                    <div class="mb-2">
+                        <code>[链接](URL)</code> - 超链接
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>实时预览
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="messagePreview" class="border rounded p-3 bg-light">
+                    <small class="text-muted">在上方输入内容以查看预览</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 实时预览功能
+document.getElementById('content').addEventListener('input', function() {
+    updatePreview();
+});
+
+function updatePreview() {
+    const content = document.getElementById('content').value;
+    const preview = document.getElementById('messagePreview');
+    
+    if (content.trim() === '') {
+        preview.innerHTML = '<small class="text-muted">在上方输入内容以查看预览</small>';
+        return;
+    }
+    
+    // 简单的格式化预览（实际应该使用更完整的 Markdown 解析器）
+    let formatted = content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.*?)__/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+    
+    preview.innerHTML = formatted;
+}
+
+function previewMessage() {
+    const content = document.getElementById('content').value;
+    if (!content.trim()) {
+        alert('请先输入消息内容');
+        return;
+    }
+    
+    // 显示预览模态框
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
+}
+
+// 文件上传预览
+document.getElementById('media_file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        console.log(`文件大小: ${fileSize} MB`);
+        
+        if (file.size > 16 * 1024 * 1024) {
+            alert('文件大小不能超过 16MB');
+            e.target.value = '';
+            return;
+        }
+        
+        // 如果是图片，显示预览
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('messagePreview');
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'img-fluid rounded mb-2';
+                img.style.maxHeight = '200px';
+                
+                const content = document.getElementById('content').value;
+                preview.innerHTML = '';
+                if (content.trim()) {
+                    const contentDiv = document.createElement('div');
+                    contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+                    preview.appendChild(contentDiv);
+                }
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+
+// 字符计数
+document.getElementById('content').addEventListener('input', function() {
+    const length = this.value.length;
+    // 可以添加字符计数显示
+});
+</script>
+
+<!-- 预览模态框 -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>消息预览
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="border rounded p-3 bg-light">
+                    <div id="fullPreview"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

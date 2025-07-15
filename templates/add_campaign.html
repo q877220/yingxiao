@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}创建营销活动 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('campaigns') }}">营销活动</a></li>
+                <li class="breadcrumb-item active">创建活动</li>
+            </ol>
+        </nav>
+        
+        <h1 class="h2 mb-4">
+            <i class="fas fa-broadcast-tower me-2"></i>创建营销活动
+        </h1>
+    </div>
+</div>
+
+<form method="POST" id="campaignForm">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            活动名称 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="给活动起个名字" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="template_id" class="form-label">
+                            消息模板 <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="template_id" name="template_id" required>
+                            <option value="">选择模板...</option>
+                            {% for template in templates %}
+                            <option value="{{ template.id }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">目标设置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                发送账户 <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                {% for account in accounts %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="target_accounts" value="{{ account.id }}" 
+                                           id="account_{{ account.id }}">
+                                    <label class="form-check-label" for="account_{{ account.id }}">
+                                        {{ account.nickname or account.phone_number }}
+                                        <small class="text-muted">({{ account.phone_number }})</small>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                目标群组 <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                {% for group in groups %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="target_groups" value="{{ group.group_id }}" 
+                                           id="group_{{ group.id }}">
+                                    <label class="form-check-label" for="group_{{ group.id }}">
+                                        {{ group.title }}
+                                        <small class="text-muted">({{ group.type }})</small>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">发送设置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheduled_time" class="form-label">计划发送时间</label>
+                                <input type="datetime-local" class="form-control" 
+                                       id="scheduled_time" name="scheduled_time">
+                                <div class="form-text">留空表示立即发送</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="interval_seconds" class="form-label">发送间隔（秒）</label>
+                                <input type="number" class="form-control" 
+                                       id="interval_seconds" name="interval_seconds" 
+                                       value="0" min="0" max="3600">
+                                <div class="form-text">每条消息间的等待时间，0表示无间隔</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>活动预览
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="campaignPreview">
+                        <small class="text-muted">选择模板后显示预览</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>发送统计
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 mb-0" id="accountCount">0</div>
+                            <small class="text-muted">账户</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 mb-0" id="groupCount">0</div>
+                            <small class="text-muted">群组</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <div class="h4 mb-0 text-primary" id="totalMessages">0</div>
+                        <small class="text-muted">总消息数</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>注意事项
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            建议设置发送间隔避免被限制
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-shield-alt text-success me-2"></i>
+                            遵守 Telegram 使用条款
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-eye text-info me-2"></i>
+                            发送前请仔细检查内容
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-ban text-danger me-2"></i>
+                            避免发送垃圾信息
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>创建活动
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="previewCampaign()">
+                    <i class="fas fa-eye me-1"></i>预览
+                </button>
+                <a href="{{ url_for('campaigns') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>返回
+                </a>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 更新统计信息
+function updateStatistics() {
+    const accountCount = document.querySelectorAll('input[name="target_accounts"]:checked').length;
+    const groupCount = document.querySelectorAll('input[name="target_groups"]:checked').length;
+    const totalMessages = accountCount * groupCount;
+    
+    document.getElementById('accountCount').textContent = accountCount;
+    document.getElementById('groupCount').textContent = groupCount;
+    document.getElementById('totalMessages').textContent = totalMessages;
+}
+
+// 更新模板预览
+function updateTemplatePreview() {
+    const templateSelect = document.getElementById('template_id');
+    const selectedTemplate = templateSelect.value;
+    const preview = document.getElementById('campaignPreview');
+    
+    if (!selectedTemplate) {
+        preview.innerHTML = '<small class="text-muted">选择模板后显示预览</small>';
+        return;
+    }
+    
+    // 这里应该通过 AJAX 获取模板内容
+    preview.innerHTML = '<small class="text-muted">模板预览加载中...</small>';
+}
+
+// 绑定事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 监听复选框变化
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateStatistics);
+    });
+    
+    // 监听模板选择
+    document.getElementById('template_id').addEventListener('change', updateTemplatePreview);
+    
+    // 初始化统计
+    updateStatistics();
+});
+
+// 表单提交
+document.getElementById('campaignForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // 获取选中的账户和群组
+    const selectedAccounts = Array.from(document.querySelectorAll('input[name="target_accounts"]:checked'))
+        .map(cb => parseInt(cb.value));
+    const selectedGroups = Array.from(document.querySelectorAll('input[name="target_groups"]:checked'))
+        .map(cb => parseInt(cb.value));
+    
+    if (selectedAccounts.length === 0) {
+        alert('请至少选择一个发送账户');
+        return;
+    }
+    
+    if (selectedGroups.length === 0) {
+        alert('请至少选择一个目标群组');
+        return;
+    }
+    
+    const data = {
+        name: formData.get('name'),
+        template_id: formData.get('template_id'),
+        target_accounts: selectedAccounts,
+        target_groups: selectedGroups,
+        scheduled_time: formData.get('scheduled_time') || null,
+        interval_seconds: parseInt(formData.get('interval_seconds') || 0)
+    };
+    
+    // 提交数据
+    fetch('/campaigns/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('活动创建成功！');
+            window.location.href = '/campaigns';
+        } else {
+            alert('创建失败：' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请重试。');
+        console.error('Error:', error);
+    });
+});
+
+function previewCampaign() {
+    const templateId = document.getElementById('template_id').value;
+    if (!templateId) {
+        alert('请先选择消息模板');
+        return;
+    }
+    
+    alert('活动预览功能开发中...');
+}
+</script>
+{% endblock %}

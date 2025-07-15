@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>仪表板
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">总账户数</h5>
+                        <h3 class="mb-0">{{ total_accounts }}</h3>
+                        <small>活跃: {{ active_accounts }}</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">群组数量</h5>
+                        <h3 class="mb-0">{{ total_groups }}</h3>
+                        <small>已加入群组</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-comments fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">营销活动</h5>
+                        <h3 class="mb-0">{{ total_campaigns }}</h3>
+                        <small>总活动数</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-broadcast-tower fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">系统状态</h5>
+                        <h3 class="mb-0"><i class="fas fa-check-circle"></i></h3>
+                        <small>运行正常</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-server fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>快速操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_account') }}" class="btn btn-primary btn-sm d-block mb-2">
+                            <i class="fas fa-plus me-1"></i>添加账户
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_template') }}" class="btn btn-success btn-sm d-block mb-2">
+                            <i class="fas fa-plus me-1"></i>创建模板
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_campaign') }}" class="btn btn-warning btn-sm d-block mb-2">
+                            <i class="fas fa-plus me-1"></i>新建活动
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('scraper') }}" class="btn btn-info btn-sm d-block mb-2">
+                            <i class="fas fa-search me-1"></i>用户采集
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('automation') }}" class="btn btn-secondary btn-sm d-block mb-2">
+                            <i class="fas fa-robot me-1"></i>自动化设置
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('analytics') }}" class="btn btn-dark btn-sm d-block mb-2">
+                            <i class="fas fa-chart-line me-1"></i>数据分析
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Campaigns -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>最近活动
+                </h5>
+                <a href="{{ url_for('campaigns') }}" class="btn btn-outline-primary btn-sm">
+                    查看全部
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_campaigns %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>活动名称</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for campaign in recent_campaigns %}
+                                <tr>
+                                    <td>{{ campaign.name }}</td>
+                                    <td>
+                                        {% if campaign.status == 'completed' %}
+                                            <span class="badge bg-success">已完成</span>
+                                        {% elif campaign.status == 'running' %}
+                                            <span class="badge bg-primary">运行中</span>
+                                        {% elif campaign.status == 'scheduled' %}
+                                            <span class="badge bg-warning">已计划</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">草稿</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ campaign.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if campaign.status == 'draft' %}
+                                            <button class="btn btn-success btn-sm" onclick="startCampaign({{ campaign.id }})">
+                                                <i class="fas fa-play me-1"></i>启动
+                                            </button>
+                                        {% endif %}
+                                        <a href="#" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>查看
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无营销活动</h5>
+                        <p class="text-muted">
+                            <a href="{{ url_for('add_campaign') }}" class="btn btn-primary">
+                                创建第一个营销活动
+                            </a>
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Overview -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-star me-2"></i>核心功能
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100">
+                            <h6 class="text-primary">
+                                <i class="fas fa-paper-plane me-2"></i>批量发送
+                            </h6>
+                            <p class="small text-muted mb-0">
+                                一键向所有群组和频道发送消息，支持定时发送和间隔设置。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100">
+                            <h6 class="text-success">
+                                <i class="fas fa-search me-2"></i>用户采集
+                            </h6>
+                            <p class="small text-muted mb-0">
+                                从指定群组采集用户信息，支持批量邀请和私信功能。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100">
+                            <h6 class="text-warning">
+                                <i class="fas fa-robot me-2"></i>自动化管理
+                            </h6>
+                            <p class="small text-muted mb-0">
+                                智能关键词入群、自动回复、转发消息等自动化功能。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function startCampaign(campaignId) {
+    if (confirm('确定要启动这个营销活动吗？')) {
+        fetch(`/campaigns/start/${campaignId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('活动启动成功！');
+                    location.reload();
+                } else {
+                    alert('启动失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('网络错误，请重试。');
+            });
+    }
+}
+</script>
+{% endblock %}

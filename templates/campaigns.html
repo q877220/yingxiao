@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}营销活动 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-broadcast-tower me-2"></i>营销活动
+            </h1>
+            <a href="{{ url_for('add_campaign') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>创建活动
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">活动列表</h5>
+            </div>
+            <div class="card-body">
+                {% if campaigns %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>活动名称</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>计划时间</th>
+                                    <th>进度</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for campaign in campaigns %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ campaign.name }}</div>
+                                        <small class="text-muted">模板: {{ campaign.template.name if campaign.template else '未知' }}</small>
+                                    </td>
+                                    <td>
+                                        {% if campaign.status == 'completed' %}
+                                            <span class="badge bg-success">已完成</span>
+                                        {% elif campaign.status == 'running' %}
+                                            <span class="badge bg-primary">运行中</span>
+                                        {% elif campaign.status == 'scheduled' %}
+                                            <span class="badge bg-warning">已计划</span>
+                                        {% elif campaign.status == 'paused' %}
+                                            <span class="badge bg-secondary">已暂停</span>
+                                        {% else %}
+                                            <span class="badge bg-outline-secondary">草稿</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ campaign.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if campaign.scheduled_time %}
+                                            {{ campaign.scheduled_time.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">立即发送</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if campaign.status == 'completed' %}
+                                            <span class="text-success">100%</span>
+                                        {% elif campaign.status == 'running' %}
+                                            <span class="text-primary">进行中...</span>
+                                        {% else %}
+                                            <span class="text-muted">0%</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if campaign.status == 'draft' %}
+                                                <button class="btn btn-success" onclick="startCampaign({{ campaign.id }})">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                            {% elif campaign.status == 'paused' %}
+                                                <button class="btn btn-primary" onclick="resumeCampaign({{ campaign.id }})">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                            {% elif campaign.status == 'running' %}
+                                                <button class="btn btn-warning" onclick="pauseCampaign({{ campaign.id }})">
+                                                    <i class="fas fa-pause"></i>
+                                                </button>
+                                            {% endif %}
+                                            
+                                            <button class="btn btn-outline-primary" onclick="viewCampaign({{ campaign.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            
+                                            <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="editCampaign({{ campaign.id }})">
+                                                        <i class="fas fa-edit me-1"></i>编辑
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="duplicateCampaign({{ campaign.id }})">
+                                                        <i class="fas fa-copy me-1"></i>复制
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="viewStatistics({{ campaign.id }})">
+                                                        <i class="fas fa-chart-bar me-1"></i>统计
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#" onclick="deleteCampaign({{ campaign.id }})">
+                                                        <i class="fas fa-trash me-1"></i>删除
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-broadcast-tower fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无营销活动</h5>
+                        <p class="text-muted">创建您的第一个营销活动来开始推广</p>
+                        <a href="{{ url_for('add_campaign') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>创建活动
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function startCampaign(campaignId) {
+    if (confirm('确定要启动这个营销活动吗？')) {
+        fetch(`/campaigns/start/${campaignId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('活动启动成功！');
+                    location.reload();
+                } else {
+                    alert('启动失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('网络错误，请重试。');
+            });
+    }
+}
+
+function pauseCampaign(campaignId) {
+    alert('暂停活动功能开发中...');
+}
+
+function resumeCampaign(campaignId) {
+    alert('恢复活动功能开发中...');
+}
+
+function viewCampaign(campaignId) {
+    alert(`查看活动 ${campaignId} 详情功能开发中...`);
+}
+
+function editCampaign(campaignId) {
+    alert(`编辑活动 ${campaignId} 功能开发中...`);
+}
+
+function duplicateCampaign(campaignId) {
+    if (confirm('确定要复制此活动吗？')) {
+        alert(`复制活动 ${campaignId} 功能开发中...`);
+    }
+}
+
+function viewStatistics(campaignId) {
+    alert(`查看活动 ${campaignId} 统计功能开发中...`);
+}
+
+function deleteCampaign(campaignId) {
+    if (confirm('确定要删除此活动吗？此操作不可撤销！')) {
+        alert(`删除活动 ${campaignId} 功能开发中...`);
+    }
+}
+</script>
+{% endblock %}

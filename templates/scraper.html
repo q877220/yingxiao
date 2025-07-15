@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}用户采集 - 云控助手{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-search me-2"></i>用户采集
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-download me-2"></i>开始采集
+                </h6>
+            </div>
+            <div class="card-body">
+                <form id="scrapeForm">
+                    <div class="mb-3">
+                        <label for="account_select" class="form-label">选择账户</label>
+                        <select class="form-select" id="account_select" required>
+                            <option value="">选择账户...</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">
+                                {{ account.nickname or account.phone_number }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="group_select" class="form-label">选择群组</label>
+                        <select class="form-select" id="group_select" required>
+                            <option value="">选择群组...</option>
+                            {% for group in groups %}
+                            <option value="{{ group.group_id }}">
+                                {{ group.title }} ({{ group.type }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="limit" class="form-label">采集数量</label>
+                        <input type="number" class="form-control" id="limit" 
+                               value="1000" min="1" max="10000">
+                        <div class="form-text">建议不超过5000以避免限制</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-download me-1"></i>开始采集
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-users me-2"></i>已采集用户
+                </h6>
+                <span class="badge bg-primary">{{ scraped_users|length }} 个用户</span>
+            </div>
+            <div class="card-body">
+                {% if scraped_users %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>用户ID</th>
+                                    <th>用户名</th>
+                                    <th>姓名</th>
+                                    <th>来源群组</th>
+                                    <th>采集时间</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in scraped_users %}
+                                <tr>
+                                    <td>
+                                        <span class="font-monospace">{{ user.user_id }}</span>
+                                    </td>
+                                    <td>
+                                        {% if user.username %}
+                                            <a href="https://t.me/{{ user.username }}" target="_blank" class="text-decoration-none">
+                                                @{{ user.username }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.first_name or user.last_name %}
+                                            {{ user.first_name or '' }} {{ user.last_name or '' }}
+                                        {% else %}
+                                            <span class="text-muted">未知</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ user.source_group.title if user.source_group else '未知' }}</small>
+                                    </td>
+                                    <td>
+                                        <small>{{ user.scraped_at.strftime('%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">活跃</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">非活跃</span>
+                                        {% endif %}
+                                        
+                                        {% if user.is_premium %}
+                                            <span class="badge bg-warning">Premium</span>
+                                        {% endif %}
+                                        
+                                        {% if user.is_verified %}
+                                            <span class="badge bg-info">已验证</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">暂无采集数据</h6>
+                        <p class="text-muted">选择群组开始采集用户信息</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('scrapeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const accountId = document.getElementById('account_select').value;
+    const groupId = document.getElementById('group_select').value;
+    const limit = document.getElementById('limit').value;
+    
+    if (!accountId || !groupId) {
+        alert('请选择账户和群组');
+        return;
+    }
+    
+    // 显示加载状态
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>采集中...';
+    submitBtn.disabled = true;
+    
+    // 发送采集请求
+    fetch('/scraper/scrape', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            account_id: accountId,
+            group_id: groupId,
+            limit: parseInt(limit)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('采集失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('网络错误，请重试。');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+</script>
+{% endblock %}
